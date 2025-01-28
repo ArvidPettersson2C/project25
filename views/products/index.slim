@@ -1,0 +1,13 @@
+h1 All Products
+
+
+ol
+  - products.each do |product|
+    li 
+      a href="products/#{product['ProductId']}" #{product["Title"]}
+      a href="products/#{product['ProductId']}/edit" uppdatera
+      form method="POST" action="products/#{product['ProductId']}/delete"
+        input type="submit" value="Delete"
+      
+      
+            

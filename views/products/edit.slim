@@ -1,0 +1,4 @@
+form action="/products/#{result['ProductId']}/update" method="post"
+    input type="text" name="title" value="#{result['Title']}"
+    input type="hidden" name="SellerId" value="#{result['SellertId']}"
+    input type="submit" value="Edit it!"
