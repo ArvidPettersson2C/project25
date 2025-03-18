@@ -7,16 +7,12 @@ require 'bcrypt'
 get('/')  do
     slim(:start)
   end 
-  
+  #Display products
   get('/products') do
-    db = SQLite3::Database.new("db/chinook-crud.db") #ändra databas
+    db = SQLite3::Database.new("db/database.db")
     db.results_as_hash = true
-    result = db.execute("SELECT * FROM products") 
-    p result
-    slim(:"products/index",locals:{products:result})
-  
-  
-  
+    result = db.execute("SELECT * FROM products")
+    slim(:"products/index", locals: { products: result })
   end
   
   get('/products/new') do
@@ -24,44 +20,47 @@ get('/')  do
   end
   
   post('/products/new') do
-    title = params[:title]
-    seller_id = params[:seller_id].to_i  
-    p "vi fick in datan #{title} och #{seller_id}"
-    db = SQLite3::Database.new("db/chinook-crud.db") #ändra databas
-    db.execute("INSERT INTO products (Title, SellerId) VALUES (?,?)",[title, seller_id])
+    name = params[:name]
+    description = params[:description]
+    price = params[:price].to_i
+    stock = params[:stock].to_i
+    
+    #p "vi fick in datan #{name} och #{id}"
+    db = SQLite3::Database.new("db/database.db") #ändra databas
+    db.execute("INSERT INTO products (name, description, price, stock) VALUES (?,?,?,?)",[name, description, price, stock])
     redirect('/products')
   end
   
   post('/products/:id/delete') do
     id = params[:id].to_i
-    db = SQLite3::Database.new("db/chinook-crud.db") #ändra databas
-    db.execute("DELETE FROM products WHERE ProductId = ?",id)
+    db = SQLite3::Database.new("db/database.db")
+    db.execute("DELETE FROM products WHERE ProductId = ?", id)
     redirect('/products')
   end
   
   post('/products/:id/update') do
     id = params[:id].to_i
-    title = params[:title]
+    name = params[:name]
     artist_id = params[:artistId].to_i
-    db = SQLite3::Database.new("db/chinook-crud.db")#ändra databas
-    db.execute("UPDATE products SET Title=?,SellerId=? WHERE ProductId = ?",[title,seller_id,id])
+    db = SQLite3::Database.new("db/database.db")#ändra databas
+    db.execute("UPDATE products SET name=? WHERE ProductId = ?",[name,seller_id,id])
     redirect('/products')
-  
-  end
+  end 
   
   get('/products/:id/edit') do
     id = params[:id].to_i
-    db = SQLite3::Database.new("db/chinook-crud.db")#ändra databas
+    db = SQLite3::Database.new("db/database.db")#ändra databas
     db.results_as_hash = true
-    result = db.execute("SELECT * FROM products WHERE ProductId = ?",id).first
+    result = db.execute("SELECT * FROMproducts WHERE ProductId = ?",id).first
     slim(:"/products/edit",locals:{result:result})
   end
   
   get('/products/:id') do
     id = params[:id].to_i
-    db = SQLite3::Database.new("db/chinook-crud.db")#ändra databas
+    db = SQLite3::Database.new("db/database.db")#ändra databas
     db.results_as_hash = true
-    result = db.execute("SELECT * FROM products WHERE ProductId = ?",id).first
+    result = db.execute("SELECT * FROMproducts WHERE ProductId = ?",id).first
     result2 = db.execute("SELECT Name FROM Sellers WHERE SellerID IN (SELECT SellerID FROM Products WHERE ProductID = ?)", id).first
     slim(:"products/show",locals:{result:result,result2:result2})
   end
+  
