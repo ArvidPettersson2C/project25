@@ -1,14 +1,15 @@
 h1 All Products
 
-
 ol
   - products.each do |product|
     li
-      a href="product/#{product['ProductId']}" class="cardLink"
+      a href="product/#{product['id']}" class="card"
         section style="background-color: red;"
           h2 #{product["name"]}
           h3 #{product["description"]}
           h3 #{product["price"]}
           h3 #{product["stock"]}
       
-      
+      form action="/products/delete" method="post"
+        input type="hidden" name="id" value=product['id']
+        input type="submit" value="Ta bort Produkt"
