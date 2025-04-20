@@ -1,15 +1,45 @@
-h1 All Products
+- if session[:user_name]
+        p = "#{session[:money]} Kr på kontot"
+
+h3 Kundvagn
+- sum = 0
+ol
+  - user_cart.each do |product|
+    li
+      section style="background-color: red;"
+        h2 #{product["name"]}
+        p #{product["description"]}
+        - amount = cart.find {|p| p["productid"] == product["id"]}["amount"]
+        p = "#{product["price"] * amount} Kr totalt"
+        p = "#{amount} st"
+        
+
+
+h1 Alla produkter
 
 ol
   - products.each do |product|
     li
-      a href="product/#{product['id']}" class="card"
-        section style="background-color: red;"
-          h2 #{product["name"]}
-          h3 #{product["description"]}
-          h3 #{product["price"]}
-          h3 #{product["stock"]}
-      
-      form action="/products/delete" method="post"
-        input type="hidden" name="id" value=product['id']
-        input type="submit" value="Ta bort Produkt"
+      section style="background-color: red;"
+        h2 #{product["name"]}
+        p #{product["description"]}
+        p = "#{product["price"]} Kr"
+        p = "#{product["stock"]} st i lager"
+        - if session[:admin] == 1
+          form action="/products/update" method="post"
+            input type="hidden" name="id" value=product['id']
+            input type="number" name="price" value=product['price']
+            input type="number" name="stock" value=product['stock']
+            input type="submit" value="Redigera produkt"
+          
+        form action="/products/add_to_cart" method="post"
+          input type="hidden" name="id" value=product['id']
+          input type="number" name="amount" value=1
+          input type="submit" value="Lägg till i kundvagn"
+
+            
+
+      - if session[:admin] == 1
+        form action="/products/delete" method="post"
+          input type="hidden" name="id" value=product['id']
+          input type="submit" value="Ta bort Produkt"

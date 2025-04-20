@@ -2,22 +2,21 @@ h2 Welcome to Samuelmarketplace!
 p Log in here!
 
 form action="/login" method="post"
-  div
-    label for="user_name" Username:
-    input type="text" name="user_name" id="user_name" required
-  div
-    label for="password" Password:
-    input type="password" name="password" id="password" required
-  div
-    input type="submit" value="Login"
+
+  input type="text" name="user_name" placeholder="username" 
+
+  input type="password" name="password" placeholder="password" 
+  input type="submit" value="Login"
 
 p Don't have an account? Register here!
 form action="/register" method="post"
-  div
-    label for="user_name" Username:
-    input type="text" name="user_name" id="user_name" required
-  div
-    label for="password" Password:
-    input type="password" name="password" id="password" required
-  div
-    input type="submit" value="Register"
+
+  input type="text" name="user_name" placeholder="username" 
+
+  input type="password" name="password" placeholder="password" 
+
+  input type="password" name="password_confirmation" placeholder="password confirmation" 
+
+  input type="checkbox" name="admin" 
+
+  input type="submit" value="Register"

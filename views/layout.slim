@@ -7,11 +7,18 @@ html lang="en"
     link rel="stylesheet" href="/css/style.css"/
     title Document
   body
-  
+    header 
+      h1 Samuelmarketplace
+      
+      nav
+        a href="/" Start
+        a href="/products" Visa alla produkter
+        - if session[:admin] == 1
+          a href="/products/new" Skapa produkt
 
-    nav
-      a href="/" Hem
-      a href="/products" Visa alla produkter
-      a href="/products/new" Ny produkt
-    ==yield
-  
+      - if session[:user_name]
+        h3 = "Inloggad som #{session[:user_name]}"
+    main
+      ==yield
+
+    footer

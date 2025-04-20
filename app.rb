@@ -3,6 +3,36 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
+enable :sessions
+
+#Todo:
+  #HJÄLPFUNKTIONER
+#Hem:
+  #Checkbox för att bli admin *
+#layout:
+  #Plånbok *
+#Visa produkter:
+  #Ta bort ska inte finnas för andra användare *
+  #Köpa produkter
+  #Podukts kostnad och mängd rubriker *
+  #Gör så att produkter inte är länkar *
+  #Lägga till i kundvagn *
+  #Kundvagn som section *
+  #Användarvalidering
+  #Ändra pris och mängd på befintliga produkter *
+  #Lägg till produkter specifikt admin *
+#Köplogik:
+  #Logga in för att köpa
+  #Summa i plånbok ska minska
+  #Mängd ska minskas
+  #produkt ska tas bort om mängd är 0
+  #Fylla på plånbok
+
+def db_connection()
+  db = SQLite3::Database.new("db/database.db")
+  db.results_as_hash = true
+  return db
+end
 
 get('/') do
   slim(:start)
@@ -10,10 +40,24 @@ end
 
 # Display products
 get('/products') do
-  db = SQLite3::Database.new("db/database.db")
-  db.results_as_hash = true
-  result = db.execute("SELECT * FROM products")
-  slim(:"products/index", locals: { products: result })
+  db = db_connection()
+  user_cart = db.execute("SELECT * FROM products WHERE id IN (SELECT productid FROM cart WHERE userid = ?)", session[:user_id])
+  cart = db.execute("SELECT * FROM cart WHERE userid = ?", session[:user_id])
+
+  products = db.execute("SELECT * FROM products")
+  slim(:"products/index", locals: { products: products, user_cart: user_cart, cart: cart })
+end
+
+post('/products/add_to_cart') do
+  product_id = params[:id].to_i
+  amount = params[:amount].to_i
+  db = db_connection()
+  if db.execute("SELECT * FROM cart WHERE userid = ? AND productid = ?", [session[:user_id], product_id]).empty?
+    db.execute("INSERT INTO cart (userid, productid, amount) VALUES (?, ?, ?)", [session[:user_id], product_id, amount])
+  else
+    db.execute("UPDATE cart SET amount = amount + ? WHERE userid = ? AND productid = ?", [amount, session[:user_id], product_id])
+  end
+  redirect('/products')
 end
 
 get('/products/new') do
@@ -26,7 +70,7 @@ post('/products/new') do
   price = params[:price].to_i
   stock = params[:stock].to_i
 
-  db = SQLite3::Database.new("db/database.db")
+  db = db_connection()
   db.execute("INSERT INTO products (name, description, price, stock) VALUES (?,?,?,?)", [name, description, price, stock])
   redirect('/products')
 end
@@ -34,35 +78,24 @@ end
 post("/products/delete") do
   puts 'test'
   id = params[:id].to_i
-  db = SQLite3::Database.new("db/database.db")
+  db = db_connection()
   db.execute("DELETE FROM products WHERE id = ?", id)
   redirect('/products')
 end
 
-post('/products/:id/update') do
+post('/products/update') do
   id = params[:id].to_i
+  price = params[:price].to_i
+  stock = params[:stock].to_i
   name = params[:name]
-  artist_id = params[:artistId].to_i
-  db = SQLite3::Database.new("db/database.db")
-  db.execute("UPDATE products SET name=? WHERE ProductId = ?", [name, id])
+  db = db_connection()
+  db.execute("UPDATE products SET price=?, stock=? WHERE id = ?", [price, stock, id])
   redirect('/products')
 end
 
-get('/products/:id/edit') do
-  id = params[:id].to_i
-  db = SQLite3::Database.new("db/database.db")
-  db.results_as_hash = true
-  result = db.execute("SELECT * FROM products WHERE ProductId = ?", id).first
-  slim(:"/products/edit", locals: { result: result })
-end
-
-get('/products/:id') do
-  id = params[:id].to_i
-  db = SQLite3::Database.new("db/database.db")
-  db.results_as_hash = true
-  result = db.execute("SELECT * FROM products WHERE ProductId = ?", id).first
-  result2 = db.execute("SELECT Name FROM Sellers WHERE SellerID IN (SELECT SellerID FROM Products WHERE ProductID = ?)", id).first
-  slim(:"products/show", locals: { result: result, result2: result2 })
+#Error hantering
+get('/error/:message') do
+  return params[:message]
 end
 
 #Login:
@@ -71,16 +104,20 @@ post('/login') do
   user_name = params["user_name"]
   password = params["password"]
 
-  db = SQLite3::Database.new("db/database.db")
-  db.results_as_hash = true
+  db = db_connection()
+  
   result = db.execute("SELECT * FROM users WHERE user_name = ?", user_name).first
-
-  if result && BCrypt::Password.new(result["password_digest"]) == password
+  puts result
+  
+  if result && BCrypt::Password.new(result["passworddigest"]) == password
     session[:user_id] = result["id"]
+    session[:user_name] = result["user_name"]
+    session[:admin] = result["admin"]
+    session[:money] = result["money"]
+    puts session[:user_id]
     redirect('/products')
   else
-    set_error("Invalid username or password")
-    redirect('/error')
+    redirect('/error/Invalid_username_or_password')
   end
 end
 
@@ -89,22 +126,21 @@ post('/register') do
   user_name = params["user_name"]
   password = params["password"]
   password_confirmation = params["password_confirmation"]
+  admin = params["admin"] == "on" ? 1 : 0
 
-  db = SQLite3::Database.new("db/database.db")
+  db = db_connection()
   result = db.execute("SELECT * FROM users WHERE user_name = ?", user_name)
 
   if result.empty?
     if password == password_confirmation
       password_digest = BCrypt::Password.create(password)
-      db.execute("INSERT INTO users (user_name, password_digest) VALUES (?, ?)", [user_name, password_digest])
-      redirect('/register_confirmation')
+      db.execute("INSERT INTO users (user_name, passworddigest, money, admin) VALUES (?, ?, ?, ?)", [user_name, password_digest, 100, admin])
+      redirect('/')
     else
-      set_error("Passwords do not match")
-      redirect('/error')
+      redirect('/error/Passwords_do_not_match')
     end
   else
-    set_error("User already exists")
-    redirect('/error')
+    redirect('/error/Username_already_taken')
   end
 end
 
@@ -113,3 +149,4 @@ get('/logout') do
   session.clear
   redirect('/')
 end
+
