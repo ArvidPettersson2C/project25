@@ -52,6 +52,12 @@ post('/products/add_to_cart') do
   product_id = params[:id].to_i
   amount = params[:amount].to_i
   db = db_connection()
+  stock = db.execute("SELECT stock FROM products WHERE id = ?", product_id).first["stock"]
+  if stock - amount < 0
+    redirect('/error/Not_enough_stock')
+  end
+  db.execute("UPDATE products SET stock = stock - ? WHERE id = ?", [amount, product_id])
+
   if db.execute("SELECT * FROM cart WHERE userid = ? AND productid = ?", [session[:user_id], product_id]).empty?
     db.execute("INSERT INTO cart (userid, productid, amount) VALUES (?, ?, ?)", [session[:user_id], product_id, amount])
   else
