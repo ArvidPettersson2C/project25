@@ -28,6 +28,12 @@ enable :sessions
   #produkt ska tas bort om mängd är 0
   #Fylla på plånbok
 
+before(['/products', '/products/delete', '/products/update']) do
+  if session[:admin] != 1
+    redirect('/error/Not_admin')
+  end
+end
+
 def db_connection()
   db = SQLite3::Database.new("db/database.db")
   db.results_as_hash = true
@@ -39,7 +45,7 @@ get('/') do
 end
 
 # Display products
-get('/products') do
+get('/products/') do
   db = db_connection()
   user_cart = db.execute("SELECT * FROM products WHERE id IN (SELECT productid FROM cart WHERE userid = ?)", session[:user_id])
   cart = db.execute("SELECT * FROM cart WHERE userid = ?", session[:user_id])
@@ -48,7 +54,7 @@ get('/products') do
   slim(:"products/index", locals: { products: products, user_cart: user_cart, cart: cart })
 end
 
-post('/products/add_to_cart') do
+post('/cart/update') do
   product_id = params[:id].to_i
   amount = params[:amount].to_i
   db = db_connection()
@@ -56,6 +62,10 @@ post('/products/add_to_cart') do
   if stock - amount < 0
     redirect('/error/Not_enough_stock')
   end
+  if amount <= 0
+    redirect('/error/Invalid_amount')
+  end
+
   db.execute("UPDATE products SET stock = stock - ? WHERE id = ?", [amount, product_id])
 
   if db.execute("SELECT * FROM cart WHERE userid = ? AND productid = ?", [session[:user_id], product_id]).empty?
@@ -63,14 +73,14 @@ post('/products/add_to_cart') do
   else
     db.execute("UPDATE cart SET amount = amount + ? WHERE userid = ? AND productid = ?", [amount, session[:user_id], product_id])
   end
-  redirect('/products')
+  redirect('/products/')
 end
 
 get('/products/new') do
   slim(:"products/new")
 end
 
-post('/products/new') do
+post('/products') do
   name = params[:name]
   description = params[:description]
   price = params[:price].to_i
@@ -78,15 +88,14 @@ post('/products/new') do
 
   db = db_connection()
   db.execute("INSERT INTO products (name, description, price, stock) VALUES (?,?,?,?)", [name, description, price, stock])
-  redirect('/products')
+  redirect('/products/')
 end
 
 post("/products/delete") do
-  puts 'test'
   id = params[:id].to_i
   db = db_connection()
   db.execute("DELETE FROM products WHERE id = ?", id)
-  redirect('/products')
+  redirect('/products/')
 end
 
 post('/products/update') do
@@ -96,7 +105,7 @@ post('/products/update') do
   name = params[:name]
   db = db_connection()
   db.execute("UPDATE products SET price=?, stock=? WHERE id = ?", [price, stock, id])
-  redirect('/products')
+  redirect('/products/')
 end
 
 #Error hantering
@@ -121,7 +130,7 @@ post('/login') do
     session[:admin] = result["admin"]
     session[:money] = result["money"]
     puts session[:user_id]
-    redirect('/products')
+    redirect('/products/')
   else
     redirect('/error/Invalid_username_or_password')
   end
@@ -133,6 +142,10 @@ post('/register') do
   password = params["password"]
   password_confirmation = params["password_confirmation"]
   admin = params["admin"] == "on" ? 1 : 0
+
+  if user_name.empty? || password.empty? || password_confirmation.empty?
+    redirect('/error/All_fields_are_required')
+  end
 
   db = db_connection()
   result = db.execute("SELECT * FROM users WHERE user_name = ?", user_name)

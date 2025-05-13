@@ -36,7 +36,7 @@ ol
           p = "Produkten är för tillfället slut i lagret"
 
         - else
-          form action="/products/add_to_cart" method="post"
+          form action="/cart/update" method="post"
             input type="hidden" name="id" value=product['id']
             input type="number" name="amount" value=1
             input type="submit" value="Lägg till i kundvagn"
